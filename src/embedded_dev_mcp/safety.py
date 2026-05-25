@@ -127,6 +127,10 @@ SYSFS_WRITE_ROOTS: tuple[str, ...] = (
     "/sys/kernel/debug/tracing/",
 )
 
+# Aliases for backward compatibility with server.py imports
+READ_PATH_ROOTS: tuple[str, ...] = SYSFS_READ_ROOTS + PROC_READ_ROOTS
+WRITE_PATH_ROOTS: tuple[str, ...] = SYSFS_WRITE_ROOTS
+
 
 def check_shell_command(
     cmd: str,
@@ -155,6 +159,9 @@ def check_shell_command(
         return False, f"no allow-list prefix matches {head!r} (see safety.ALLOW_SHELL_PREFIXES)"
 
     return True, ""
+
+
+check_shell_prefix = check_shell_command
 
 
 def check_path(path: str, allowed_roots: tuple[str, ...]) -> tuple[bool, str]:

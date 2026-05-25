@@ -17,14 +17,14 @@ def build_transport(settings: Settings) -> Transport:
             user=settings.ssh_user,
             key=settings.ssh_key,
             password=settings.ssh_password,
-            timeout=settings.device_timeout,
+            timeout=settings.default_timeout,
         )
     elif settings.transport == "adb-usb":
         return AdbTransport(
             mode="usb",
             binary=settings.adb_binary,
             serial=settings.adb_serial,
-            timeout=settings.device_timeout,
+            timeout=settings.default_timeout,
         )
     elif settings.transport == "adb-wifi":
         return AdbTransport(
@@ -32,7 +32,7 @@ def build_transport(settings: Settings) -> Transport:
             binary=settings.adb_binary,
             wifi_host=settings.adb_wifi_host,
             wifi_port=settings.adb_wifi_port,
-            timeout=settings.device_timeout,
+            timeout=settings.default_timeout,
         )
     else:
         raise ValueError(f"Unknown transport: {settings.transport}")

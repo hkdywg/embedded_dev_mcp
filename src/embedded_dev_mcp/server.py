@@ -146,7 +146,7 @@ def create_server(settings: Settings) -> FastMCP:
 def main() -> int:
     """Main entry point."""
     try:
-        settings = Settings()
+        settings = Settings.from_env()
     except Exception as e:
         print(f"[embedded-dev-mcp] Configuration error: {e}", file=sys.stderr)
         return 2
