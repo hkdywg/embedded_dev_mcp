@@ -1,0 +1,44 @@
+{
+  "_comment": "Template - Run: sed \"s|{{PROJECT_DIR}}|$PWD|g\" mcp.template.json > mcp.json",
+  "mcpServers": {
+    "embedded-dev-ssh": {
+      "command": "uv",
+      "args": ["--directory", "{{PROJECT_DIR}}", "run", "embedded-dev-mcp"],
+      "env": {
+        "SERVER_NAME": "embedded-dev-ssh",
+        "TRANSPORT": "ssh",
+        "SSH_HOST": "192.168.1.100",
+        "SSH_PORT": "22",
+        "SSH_USER": "root",
+        "SSH_KEY": "~/.ssh/id_rsa",
+        "DEVICE_TIMEOUT": "15",
+        "AUDIT_LOG": "{{PROJECT_DIR}}/audit.log"
+      }
+    },
+    "embedded-dev-adb-usb": {
+      "command": "uv",
+      "args": ["--directory", "{{PROJECT_DIR}}", "run", "embedded-dev-mcp"],
+      "env": {
+        "SERVER_NAME": "embedded-dev-adb-usb",
+        "TRANSPORT": "adb-usb",
+        "ADB_BINARY": "adb",
+        "ADB_SERIAL": "",
+        "DEVICE_TIMEOUT": "15",
+        "AUDIT_LOG": "{{PROJECT_DIR}}/audit.log"
+      }
+    },
+    "embedded-dev-adb-wifi": {
+      "command": "uv",
+      "args": ["--directory", "{{PROJECT_DIR}}", "run", "embedded-dev-mcp"],
+      "env": {
+        "SERVER_NAME": "embedded-dev-adb-wifi",
+        "TRANSPORT": "adb-wifi",
+        "ADB_BINARY": "adb",
+        "ADB_WIFI_HOST": "192.168.1.100",
+        "ADB_WIFI_PORT": "5555",
+        "DEVICE_TIMEOUT": "15",
+        "AUDIT_LOG": "{{PROJECT_DIR}}/audit.log"
+      }
+    }
+  }
+}
