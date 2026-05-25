@@ -1,32 +1,32 @@
 # embedded-dev-mcp
 
-嵌入式 Linux 和 Android 开发的 MCP 服务器。让 AI 助手（如 Claude）直接操作嵌入式设备，支持 SSH 和 ADB（USB/WiFi）两种连接方式。
+让 Claude（或任何 MCP 客户端）直接操作嵌入式 Linux 板子和 Android 设备。自己跑命令、自己看输出、自己 debug。支持 SSH 和 ADB（USB/WiFi）三种连接方式。
 
 ## 功能特点
 
-| 传输方式 | 适用设备 | 实现方式 |
-|-----------|---------------|---------|
-| `ssh` | 嵌入式 Linux（i.MX、TI、RK 等） | asyncssh |
-| `adb-usb` | Android 设备 / RK 板子 USB adb | adb CLI |
+| Transport | 适用场景 | 后端 |
+|-----------|---------|------|
+| `ssh` | 嵌入式 Linux（i.MX、TI、RK 等有 sshd 的板子） | asyncssh |
+| `adb-usb` | Android 设备 / RK 板子 USB adb gadget | adb CLI |
 | `adb-wifi` | Android 设备 / adb-over-tcp | adb CLI |
 
 ### 支持的工具
 
 **只读工具**（无需用户确认）：
-- `device_info()` - 设备基本信息（传输方式、uname、uptime）
+- `device_info()` - 设备基本信息（transport、uname、uptime、hostname）
 - `read_dmesg(lines, grep)` - 内核日志尾部
 - `read_sysfs(path)` - 读取 /sys/ 文件
 - `read_proc(path)` - 读取 /proc/ 文件
-- `list_dir(path, long)` - 列出目录内容
-- `lsmod()` - 已加载的内核模块
-- `modinfo(module)` - 模块元数据
-- `read_gpio(gpio)` - GPIO 值（传统 sysfs 接口）
+- `list_dir(path, long)` - 列目录内容
+- `lsmod()` - 已加载内核模块列表
+- `modinfo(module)` - 模块元信息
+- `read_gpio(gpio)` - GPIO 值（legacy sysfs）
 - `read_iio(device, channel)` - IIO 传感器值
-- `run_shell(cmd)` - 执行白名单内的 shell 命令
-- `adb_devices()` - 列出 ADB 设备（仅 ADB 传输）
+- `run_shell(cmd)` - 白名单内的 shell 命令
+- `adb_devices()` - ADB 设备列表（仅 ADB transport）
 
-**写入工具**（需要用户确认）：
-- `install_module(ko_path, params)` - 上传并 insmod .ko 文件
+**写入工具**（需用户确认）：
+- `install_module(ko_path, params)` - 推送到板子并 insmod
 - `remove_module(name)` - rmmod 模块
 - `write_sysfs(path, value)` - 写入 sysfs
 - `set_gpio(gpio, value)` - 设置 GPIO 值
@@ -34,106 +34,82 @@
 - `reboot_device()` - 重启设备
 - `pull_file(remote_path, local_path)` - 从设备拉取文件
 
-## 安装步骤
+## 安装
 
 ```bash
-# 安装 uv（如果未安装）
+# 安装 uv（如果没有）
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # 安装依赖
 cd embedded-dev-mcp
 uv sync
-
-# 从模板生成 mcp.json
-sed "s|{{PROJECT_DIR}}|$PWD|g" mcp.template.json > mcp.json
 ```
 
-## 配置说明
+## 使用方式
 
-编辑 `mcp.json` 配置传输方式：
+项目根目录已包含 `.mcp.json` 文件。当 OpenCode 在此项目目录下工作时，会自动发现并加载 MCP server。
 
-### SSH 传输
+**只需修改 `.mcp.json` 中的环境变量**：
 
+1. SSH 方式：修改 `SSH_HOST`、`SSH_USER`、`SSH_KEY`
+2. ADB USB 方式：修改 `ADB_SERIAL`（可选）
+3. ADB WiFi 方式：修改 `ADB_WIFI_HOST`
+
+### 配置示例
+
+编辑 `.mcp.json` 中对应 server 的 `env` 部分：
+
+**SSH 方式**：
 ```json
-{
-  "mcpServers": {
-    "embedded-dev-ssh": {
-      "env": {
-        "TRANSPORT": "ssh",
-        "SSH_HOST": "192.168.1.100",
-        "SSH_PORT": "22",
-        "SSH_USER": "root",
-        "SSH_KEY": "~/.ssh/id_rsa",
-        "DEVICE_TIMEOUT": "15"
-      }
-    }
-  }
+"env": {
+  "TRANSPORT": "ssh",
+  "SSH_HOST": "192.168.1.100",
+  "SSH_USER": "root",
+  "SSH_KEY": "~/.ssh/id_rsa"
 }
 ```
 
-### ADB USB 传输
-
+**ADB USB 方式**：
 ```json
-{
-  "mcpServers": {
-    "embedded-dev-adb-usb": {
-      "env": {
-        "TRANSPORT": "adb-usb",
-        "ADB_SERIAL": "",  // 可选：指定设备序列号
-        "DEVICE_TIMEOUT": "15"
-      }
-    }
-  }
+"env": {
+  "TRANSPORT": "adb-usb",
+  "ADB_SERIAL": ""
 }
 ```
 
-### ADB WiFi 传输
-
+**ADB WiFi 方式**：
 ```json
-{
-  "mcpServers": {
-    "embedded-dev-adb-wifi": {
-      "env": {
-        "TRANSPORT": "adb-wifi",
-        "ADB_WIFI_HOST": "192.168.1.100",
-        "ADB_WIFI_PORT": "5555",
-        "DEVICE_TIMEOUT": "15"
-      }
-    }
-  }
+"env": {
+  "TRANSPORT": "adb-wifi",
+  "ADB_WIFI_HOST": "192.168.1.100",
+  "ADB_WIFI_PORT": "5555"
 }
 ```
 
 ## 安全机制
 
 - **命令白名单**：只允许预定义的安全命令前缀
-- **路径限制**：文件访问仅限于安全目录
+- **路径限制**：文件访问限制在安全目录内
 - **审计日志**：所有操作记录到 audit.log
-- **用户确认**：写入工具在 MCP 客户端需要用户显式批准
+- **用户确认**：写入操作在 MCP 客户端需要用户显式批准
 
-## 系统要求
+## 前置条件
 
 - Python 3.10+
-- `adb` 命令行工具（用于 ADB 传输方式）
-- 目标设备的 SSH 访问或 ADB 连接
+- `adb` 命令（ADB 方式需要）
+- SSH 或 ADB 连接到目标设备
 
-## 使用方法
+## 在其他项目中使用
 
-在 Claude Code 或其他 MCP 客户端中，将 `mcp.json` 的配置添加到客户端设置即可使用。
+当你在其他嵌入式开发项目目录下工作时，可以使用提供的脚本快速创建 `.mcp.json`：
 
-### 环境变量配置
+```bash
+# 在目标项目目录创建 MCP 配置
+/path/to/embedded_dev_mcp/create-mcp-config.sh /path/to/your_project
 
-| 变量 | 说明 | 默认值 |
-|------|------|--------|
-| `TRANSPORT` | 传输方式：ssh / adb-usb / adb-wifi | ssh |
-| `SSH_HOST` | SSH 服务器地址 | 192.168.1.100 |
-| `SSH_PORT` | SSH 端口 | 22 |
-| `SSH_USER` | SSH 用户名 | root |
-| `SSH_KEY` | SSH 私钥路径 | ~/.ssh/id_rsa |
-| `SSH_PASSWORD` | SSH 密码（可选） | - |
-| `ADB_SERIAL` | ADB 设备序列号（可选） | - |
-| `ADB_WIFI_HOST` | ADB WiFi 主机地址 | - |
-| `ADB_WIFI_PORT` | ADB WiFi 端口 | 5555 |
-| `DEVICE_TIMEOUT` | 命令超时秒数 | 15 |
-| `AUDIT_LOG` | 审计日志路径 | ~/.embedded_dev_mcp/audit.log |
-| `EXTRA_SHELL_PREFIXES` | 额外允许的命令前缀（逗号分隔） | - |
+# 或者直接在当前目录创建
+cd /path/to/your_project
+/path/to/embedded_dev_mcp/create-mcp-config.sh .
+```
+
+然后编辑生成的 `.mcp.json`，修改 `SSH_HOST` 或 `ADB_WIFI_HOST` 等配置。
