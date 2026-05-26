@@ -1,6 +1,7 @@
 """MCP server implementation with main entry point.
 
 This is the single entry point for the embedded-dev-mcp server.
+Supports both embedded Linux board debugging (SSH/ADB) and MCU debugging (probe-rs).
 """
 
 from __future__ import annotations
@@ -11,8 +12,10 @@ from mcp.server.fastmcp import FastMCP
 
 from .audit import AuditLog
 from .config import Settings
+from .probe_manager import ProbeRsManager
 from .safety import READ_PATH_ROOTS, WRITE_PATH_ROOTS, check_path, check_shell_prefix
 from .tools import ReadOnlyTools, WritableTools
+from .tools.mcu_tools import McuDebugTools
 from .transports import build_transport
 
 
@@ -23,9 +26,20 @@ def create_server(settings: Settings) -> FastMCP:
     ro = ReadOnlyTools(transport, audit, extra_prefixes=settings.extra_prefixes)
     rw = WritableTools(transport, audit)
 
+    # MCU debug tools (if enabled)
+    mcu_tools = None
+    if settings.mcu_debug_enabled:
+        probe_manager = ProbeRsManager(
+            probe_type=settings.probe_type,
+            target_chip=settings.target_chip,
+            probe_rs_binary=settings.probe_rs_binary,
+            timeout=settings.default_timeout,
+        )
+        mcu_tools = McuDebugTools(probe_manager, audit)
+
     mcp = FastMCP(settings.server_name)
 
-    # Read-only tools
+    # Embedded Linux Board Tools (Read-only)
     @mcp.tool()
     async def device_info() -> str:
         """Get device identity: transport type, uname, uptime, hostname."""
@@ -88,7 +102,7 @@ def create_server(settings: Settings) -> FastMCP:
             return f"REJECTED: {reason}"
         return await ro.run_shell(cmd)
 
-    # Writable tools
+    # Embedded Linux Board Tools (Writable)
     @mcp.tool()
     async def install_module(ko_path: str, params: str = "") -> str:
         """Push .ko file to device and insmod it."""
@@ -127,18 +141,57 @@ def create_server(settings: Settings) -> FastMCP:
         """Pull file from device to local machine."""
         return await rw.pull_file(remote_path, local_path)
 
-    # ADB-specific tool (only for ADB transport)
-    if transport.name == "adb":
+    # MCU Debug Tools (if enabled)
+    if mcu_tools:
         @mcp.tool()
-        async def adb_devices() -> str:
-            """List connected ADB devices."""
-            from .transports.adb import AdbTransport
+        async def list_probes() -> str:
+            """List all connected debug probes (J-Link, ST-Link, etc.)."""
+            return await mcu_tools.list_probes()
 
-            adb_t = transport
-            if isinstance(adb_t, AdbTransport):
-                result = await adb_t._adb(["devices", "-l"])
-                return result.format()
-            return "Not available for this transport"
+        @mcp.tool()
+        async def connect_probe(probe_index: int | None = None) -> str:
+            """Connect to a debug probe for MCU debugging."""
+            return await mcu_tools.connect_probe(probe_index)
+
+        @mcp.tool()
+        async def flash_firmware(firmware_path: str, verify: bool = True) -> str:
+            """Flash firmware (ELF/HEX/BIN) to target MCU."""
+            return await mcu_tools.flash_firmware(firmware_path, verify=verify)
+
+        @mcp.tool()
+        async def erase_flash() -> str:
+            """Erase all flash memory on target MCU."""
+            return await mcu_tools.erase_flash()
+
+        @mcp.tool()
+        async def reset_target(halt: bool = False) -> str:
+            """Reset the target MCU. Optionally halt after reset."""
+            return await mcu_tools.reset_target(halt=halt)
+
+        @mcp.tool()
+        async def halt_target() -> str:
+            """Halt the target MCU execution."""
+            return await mcu_tools.halt_target()
+
+        @mcp.tool()
+        async def resume_target() -> str:
+            """Resume target MCU execution."""
+            return await mcu_tools.resume_target()
+
+        @mcp.tool()
+        async def read_memory(address: int, size: int, format: str = "hex") -> str:
+            """Read memory from target MCU at specified address."""
+            return await mcu_tools.read_memory(address, size, format)
+
+        @mcp.tool()
+        async def write_memory(address: int, data: str, format: str = "hex") -> str:
+            """Write memory to target MCU at specified address."""
+            return await mcu_tools.write_memory(address, data, format)
+
+        @mcp.tool()
+        async def target_info() -> str:
+            """Get target MCU information."""
+            return await mcu_tools.target_info()
 
     return mcp
 
@@ -147,7 +200,7 @@ def main() -> int:
     """Main entry point."""
     try:
         settings = Settings.from_env()
-    except Exception as e:
+    except ValueError as e:
         print(f"[embedded-dev-mcp] Configuration error: {e}", file=sys.stderr)
         return 2
 

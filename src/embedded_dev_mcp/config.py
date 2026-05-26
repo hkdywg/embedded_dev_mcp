@@ -12,10 +12,10 @@ from pathlib import Path
 from typing import Literal
 
 Transport = Literal["ssh", "adb-usb", "adb-wifi"]
+ProbeType = Literal["stlink", "jlink", "daplink", "blackmagic"]
 
 
 def _get_env(short: str, long: str, default: str = "") -> str:
-    """Get env var, preferring short name over long name."""
     return os.environ.get(short) or os.environ.get(long) or default
 
 
@@ -33,15 +33,22 @@ class Settings:
 
     # ADB
     adb_binary: str
-    adb_serial: str | None      # device serial (USB) or `host:port` (wifi)
+    adb_serial: str | None
     adb_wifi_host: str | None
     adb_wifi_port: int
+
+    # MCU Debug (probe-rs)
+    probe_type: ProbeType
+    target_chip: str
+    probe_rs_binary: str
+    probe_index: int | None
+    mcu_debug_enabled: bool
 
     # Behavior
     default_timeout: float
     audit_log_path: Path
     allow_extra_shell_prefixes: tuple[str, ...]
-    extra_prefixes: tuple[str, ...] = ()  # alias for compatibility
+    extra_prefixes: tuple[str, ...] = ()
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -59,8 +66,17 @@ class Settings:
             os.environ.get("AUDIT_LOG") or os.environ.get("BOARD_AUDIT_LOG") or audit_log_default
         ).expanduser()
 
+        # MCU debug configuration
+        probe_type = _get_env("PROBE_TYPE", "MCU_PROBE_TYPE", "stlink").lower().strip()
+        if probe_type not in ("stlink", "jlink", "daplink", "blackmagic"):
+            probe_type = "stlink"
+
+        mcu_enabled = os.environ.get("MCU_DEBUG_ENABLED", "false").lower() in ("true", "1", "yes")
+        probe_index_str = os.environ.get("PROBE_INDEX", "")
+        probe_index = int(probe_index_str) if probe_index_str else None
+
         return cls(
-            transport=transport,  # type: ignore[arg-type]
+            transport=transport,
             server_name=_get_env("SERVER_NAME", "BOARD_NAME", "embedded-dev"),
             ssh_host=_get_env("SSH_HOST", "BOARD_HOST", "192.168.7.2"),
             ssh_port=int(_get_env("SSH_PORT", "BOARD_PORT", "22")),
@@ -71,8 +87,12 @@ class Settings:
             adb_serial=os.environ.get("ADB_SERIAL") or None,
             adb_wifi_host=os.environ.get("ADB_WIFI_HOST") or None,
             adb_wifi_port=int(os.environ.get("ADB_WIFI_PORT", "5555")),
-            default_timeout=float(_get_env("DEVICE_TIMEOUT", "BOARD_TIMEOUT", "15")),
+            probe_type=probe_type,
+            target_chip=_get_env("TARGET_CHIP", "MCU_TARGET_CHIP", "stm32f4"),
+            probe_rs_binary=os.environ.get("PROBE_RS_BINARY", "probe-rs"),
+            probe_index=probe_index,
+            mcu_debug_enabled=mcu_enabled,
+            default_timeout=float(_get_env("TIMEOUT", "BOARD_TIMEOUT", "15")),
             audit_log_path=audit_log_path,
             allow_extra_shell_prefixes=extra_prefixes,
-            extra_prefixes=extra_prefixes,
         )
