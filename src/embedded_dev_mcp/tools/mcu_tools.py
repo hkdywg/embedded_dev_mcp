@@ -115,6 +115,57 @@ class McuDebugTools:
         except ProbeError as e:
             return await self._run("step_target", {}, f"ERROR: {e}", ok=False)
 
+    # Breakpoint management
+    async def start_gdb_server(self) -> str:
+        """Start probe-rs GDB server."""
+        try:
+            result = await self.probe.start_gdb_server()
+            return await self._run("start_gdb_server", {}, result)
+        except ProbeError as e:
+            return await self._run("start_gdb_server", {}, f"ERROR: {e}", ok=False)
+
+    async def stop_gdb_server(self) -> str:
+        """Stop probe-rs GDB server."""
+        try:
+            result = await self.probe.stop_gdb_server()
+            return await self._run("stop_gdb_server", {}, result)
+        except ProbeError as e:
+            return await self._run("stop_gdb_server", {}, f"ERROR: {e}", ok=False)
+
+    async def set_breakpoint(self, address: int, hw: bool = True) -> str:
+        """Set a breakpoint at address."""
+        address = max(0, int(address))
+        try:
+            result = await self.probe.set_breakpoint(address, hw=hw)
+            return await self._run("set_breakpoint", {"address": f"0x{address:08X}"}, result)
+        except ProbeError as e:
+            return await self._run("set_breakpoint", {"address": f"0x{address:08X}"}, f"ERROR: {e}", ok=False)
+
+    async def clear_breakpoint(self, address: int) -> str:
+        """Clear breakpoint at address."""
+        address = max(0, int(address))
+        try:
+            result = await self.probe.clear_breakpoint(address)
+            return await self._run("clear_breakpoint", {"address": f"0x{address:08X}"}, result)
+        except ProbeError as e:
+            return await self._run("clear_breakpoint", {"address": f"0x{address:08X}"}, f"ERROR: {e}", ok=False)
+
+    async def list_breakpoints(self) -> str:
+        """List all breakpoints."""
+        try:
+            result = await self.probe.list_breakpoints()
+            return await self._run("list_breakpoints", {}, result)
+        except ProbeError as e:
+            return await self._run("list_breakpoints", {}, f"ERROR: {e}", ok=False)
+
+    async def clear_all_breakpoints(self) -> str:
+        """Clear all breakpoints."""
+        try:
+            result = await self.probe.clear_all_breakpoints()
+            return await self._run("clear_all_breakpoints", {}, result)
+        except ProbeError as e:
+            return await self._run("clear_all_breakpoints", {}, f"ERROR: {e}", ok=False)
+
     # Memory operations
     async def read_memory(self, address: int, size: int, format: str = "hex") -> str:
         """Read memory from target MCU."""

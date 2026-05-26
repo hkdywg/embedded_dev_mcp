@@ -203,6 +203,26 @@ def create_server(settings: Settings) -> FastMCP:
             """Single-step target MCU execution."""
             return await mcu_tools.step_target()
 
+        @mcp.tool()
+        async def set_breakpoint(address: int, hw: bool = True) -> str:
+            """Set a hardware breakpoint at address. hw=False for software breakpoint."""
+            return await mcu_tools.set_breakpoint(address, hw=hw)
+
+        @mcp.tool()
+        async def clear_breakpoint(address: int) -> str:
+            """Clear breakpoint at address."""
+            return await mcu_tools.clear_breakpoint(address)
+
+        @mcp.tool()
+        async def list_breakpoints() -> str:
+            """List all breakpoints."""
+            return await mcu_tools.list_breakpoints()
+
+        @mcp.tool()
+        async def clear_all_breakpoints() -> str:
+            """Clear all breakpoints."""
+            return await mcu_tools.clear_all_breakpoints()
+
     return mcp
 
 

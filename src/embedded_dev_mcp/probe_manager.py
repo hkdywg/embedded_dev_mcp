@@ -31,14 +31,18 @@ class ProbeRsManager:
         probe_type: ProbeType = "stlink",
         target_chip: str = "stm32f4",
         probe_rs_binary: str = "probe-rs",
+        gdb_binary: str = "arm-none-eabi-gdb",
+        gdb_port: int = 1337,
         timeout: float = 30.0,
     ) -> None:
         self.probe_type = probe_type
         self.target_chip = target_chip
         self.probe_rs_binary = probe_rs_binary
+        self.gdb_binary = gdb_binary
+        self.gdb_port = gdb_port
         self.timeout = timeout
         self._connected = False
-        self._session_id: str | None = None
+        self._gdb_server_proc: asyncio.subprocess.Process | None = None
 
     async def _run_probe_rs(
         self,
@@ -172,6 +176,108 @@ class ProbeRsManager:
             raise ProbeError(f"Step failed: {stderr}")
 
         return "Single step completed"
+
+    async def start_gdb_server(self) -> str:
+        """Start probe-rs GDB server in background."""
+        if self._gdb_server_proc and self._gdb_server_proc.returncode is None:
+            return "GDB server already running"
+
+        args = ["gdb", "--chip", self.target_chip, "--port", str(self.gdb_port)]
+        try:
+            self._gdb_server_proc = await asyncio.create_subprocess_exec(
+                self.probe_rs_binary,
+                *args,
+                stdout=asyncio.subprocess.DEVNULL,
+                stderr=asyncio.subprocess.DEVNULL,
+            )
+        except OSError as e:
+            raise ProbeError(f"Failed to start GDB server: {e}")
+
+        await asyncio.sleep(0.5)
+        return f"GDB server started on port {self.gdb_port}"
+
+    async def stop_gdb_server(self) -> str:
+        """Stop the GDB server."""
+        if not self._gdb_server_proc or self._gdb_server_proc.returncode is not None:
+            return "GDB server not running"
+
+        self._gdb_server_proc.terminate()
+        await self._gdb_server_proc.wait()
+        self._gdb_server_proc = None
+        return "GDB server stopped"
+
+    async def _run_gdb(
+        self, commands: list[str], timeout: float = 10.0
+    ) -> tuple[str, str, int]:
+        """Execute GDB commands in batch mode against the GDB server."""
+        argv = [
+            self.gdb_binary,
+            "-batch",
+            "-ex", f"target remote localhost:{self.gdb_port}",
+        ]
+        for cmd in commands:
+            argv.extend(["-ex", cmd])
+        argv.extend(["-ex", "quit"])
+
+        to = timeout or self.timeout
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                *argv,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=to)
+            return (
+                stdout.decode("utf-8", errors="replace") or "",
+                stderr.decode("utf-8", errors="replace") or "",
+                proc.returncode or -1,
+            )
+        except asyncio.TimeoutError:
+            proc.kill()
+            await proc.wait()
+            raise ProbeError(f"GDB timed out after {to}s")
+        except FileNotFoundError:
+            raise ProbeError(f"GDB binary not found: {self.gdb_binary}")
+
+    async def set_breakpoint(self, address: int, hw: bool = True) -> str:
+        """Set a breakpoint. hw=True for hardware breakpoint (hbreak)."""
+        cmd = f"hbreak *0x{address:08X}" if hw else f"break *0x{address:08X}"
+        stdout, stderr, rc = await self._run_gdb([cmd])
+
+        if rc != 0 and "Breakpoint" not in stdout:
+            raise ProbeError(f"Set breakpoint failed: {stderr or stdout}")
+
+        return f"Breakpoint set at 0x{address:08X}"
+
+    async def clear_breakpoint(self, address: int) -> str:
+        """Clear breakpoint at address."""
+        stdout, stderr, rc = await self._run_gdb([f"clear *0x{address:08X}"])
+
+        if rc != 0 and "Deleted" not in stdout:
+            raise ProbeError(f"Clear breakpoint failed: {stderr or stdout}")
+
+        return f"Breakpoint cleared at 0x{address:08X}"
+
+    async def list_breakpoints(self) -> str:
+        """List all breakpoints."""
+        stdout, stderr, rc = await self._run_gdb(["info breakpoints"])
+
+        if rc != 0:
+            raise ProbeError(f"List breakpoints failed: {stderr}")
+
+        if "No breakpoints" in stdout:
+            return "No breakpoints set"
+
+        return stdout
+
+    async def clear_all_breakpoints(self) -> str:
+        """Clear all breakpoints."""
+        stdout, stderr, rc = await self._run_gdb(["delete"])
+
+        if rc != 0:
+            raise ProbeError(f"Clear breakpoints failed: {stderr}")
+
+        return "All breakpoints cleared"
 
     async def read_memory(self, address: int, size: int, format: str = "hex") -> str:
         """Read memory from target."""
