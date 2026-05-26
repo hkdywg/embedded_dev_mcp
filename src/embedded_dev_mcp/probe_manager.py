@@ -106,20 +106,6 @@ class ProbeRsManager:
         self._connected = True
         return f"Connected to {self.target_chip} via {self.probe_type}"
 
-    async def flash(self, firmware_path: str, verify: bool = True) -> str:
-        """Flash firmware to the target."""
-        args = ["download", firmware_path]
-        args.extend(["--chip", self.target_chip])
-        if verify:
-            args.append("--verify")
-
-        stdout, stderr, rc = await self._run_probe_rs(args, timeout=120.0)
-
-        if rc != 0:
-            raise ProbeError(f"Flash failed: {stderr}")
-
-        return f"Flashed {firmware_path} successfully"
-
     async def erase_flash(self) -> str:
         """Erase all flash memory."""
         args = ["erase", "--chip", self.target_chip]
@@ -130,6 +116,28 @@ class ProbeRsManager:
             raise ProbeError(f"Erase failed: {stderr}")
 
         return "Flash erased successfully"
+
+    async def program_flash(self, firmware_path: str) -> str:
+        """Program firmware to flash (no verify)."""
+        args = ["download", firmware_path, "--chip", self.target_chip]
+
+        stdout, stderr, rc = await self._run_probe_rs(args, timeout=120.0)
+
+        if rc != 0:
+            raise ProbeError(f"Program failed: {stderr}")
+
+        return f"Programmed {firmware_path} successfully"
+
+    async def verify_flash(self, firmware_path: str) -> str:
+        """Verify flash contents against firmware file."""
+        args = ["verify", firmware_path, "--chip", self.target_chip]
+
+        stdout, stderr, rc = await self._run_probe_rs(args, timeout=60.0)
+
+        if rc != 0:
+            raise ProbeError(f"Verify failed: {stderr}")
+
+        return f"Verified {firmware_path} successfully"
 
     async def reset(self, halt: bool = False) -> str:
         """Reset the target."""

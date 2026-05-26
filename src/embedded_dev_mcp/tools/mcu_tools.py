@@ -52,19 +52,42 @@ class McuDebugTools:
             return await self._run("connect_probe", {"probe_index": probe_index}, f"ERROR: {e}", ok=False)
 
     # Flash operations
-    async def flash_firmware(self, firmware_path: str, verify: bool = True) -> str:
-        """Flash firmware to the target MCU."""
+    async def program_flash(self, firmware_path: str) -> str:
+        """Program firmware to target MCU flash."""
         path = Path(firmware_path)
         if not path.exists():
-            return await self._run("flash_firmware", {"path": firmware_path}, f"File not found: {firmware_path}", ok=False)
+            return await self._run(
+                "program_flash", {"path": firmware_path},
+                f"File not found: {firmware_path}", ok=False,
+            )
         if not firmware_path.endswith((".elf", ".hex", ".bin")):
-            return await self._run("flash_firmware", {"path": firmware_path}, "Invalid format. Use ELF, HEX, or BIN.", ok=False)
-
+            return await self._run(
+                "program_flash", {"path": firmware_path},
+                "Invalid format. Use ELF, HEX, or BIN.", ok=False,
+            )
         try:
-            result = await self.probe.flash(firmware_path, verify=verify)
-            return await self._run("flash_firmware", {"path": firmware_path, "verify": verify}, result)
+            result = await self.probe.program_flash(firmware_path)
+            return await self._run("program_flash", {"path": firmware_path}, result)
         except ProbeError as e:
-            return await self._run("flash_firmware", {"path": firmware_path}, f"ERROR: {e}", ok=False)
+            return await self._run(
+                "program_flash", {"path": firmware_path}, f"ERROR: {e}", ok=False,
+            )
+
+    async def verify_flash(self, firmware_path: str) -> str:
+        """Verify flash contents against firmware file."""
+        path = Path(firmware_path)
+        if not path.exists():
+            return await self._run(
+                "verify_flash", {"path": firmware_path},
+                f"File not found: {firmware_path}", ok=False,
+            )
+        try:
+            result = await self.probe.verify_flash(firmware_path)
+            return await self._run("verify_flash", {"path": firmware_path}, result)
+        except ProbeError as e:
+            return await self._run(
+                "verify_flash", {"path": firmware_path}, f"ERROR: {e}", ok=False,
+            )
 
     async def erase_flash(self) -> str:
         """Erase all flash memory."""

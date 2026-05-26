@@ -154,14 +154,19 @@ def create_server(settings: Settings) -> FastMCP:
             return await mcu_tools.connect_probe(probe_index)
 
         @mcp.tool()
-        async def flash_firmware(firmware_path: str, verify: bool = True) -> str:
-            """Flash firmware (ELF/HEX/BIN) to target MCU."""
-            return await mcu_tools.flash_firmware(firmware_path, verify=verify)
-
-        @mcp.tool()
         async def erase_flash() -> str:
             """Erase all flash memory on target MCU."""
             return await mcu_tools.erase_flash()
+
+        @mcp.tool()
+        async def program_flash(firmware_path: str) -> str:
+            """Program firmware (ELF/HEX/BIN) to target MCU flash."""
+            return await mcu_tools.program_flash(firmware_path)
+
+        @mcp.tool()
+        async def verify_flash(firmware_path: str) -> str:
+            """Verify flash contents against firmware file."""
+            return await mcu_tools.verify_flash(firmware_path)
 
         @mcp.tool()
         async def reset_target(halt: bool = False) -> str:
