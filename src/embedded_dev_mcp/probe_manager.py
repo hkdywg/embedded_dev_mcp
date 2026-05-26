@@ -70,7 +70,7 @@ class ProbeRsManager:
             return (
                 stdout.decode("utf-8", errors="replace") or "",
                 stderr.decode("utf-8", errors="replace") or "",
-                proc.returncode or -1,
+                proc.returncode if proc.returncode is not None else -1,
             )
         except asyncio.TimeoutError:
             proc.kill()
@@ -245,7 +245,7 @@ class ProbeRsManager:
             return (
                 stdout.decode("utf-8", errors="replace") or "",
                 stderr.decode("utf-8", errors="replace") or "",
-                proc.returncode or -1,
+                proc.returncode if proc.returncode is not None else -1,
             )
         except asyncio.TimeoutError:
             proc.kill()

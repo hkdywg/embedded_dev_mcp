@@ -95,4 +95,5 @@ class Settings:
             default_timeout=float(_get_env("TIMEOUT", "BOARD_TIMEOUT", "15")),
             audit_log_path=audit_log_path,
             allow_extra_shell_prefixes=extra_prefixes,
+            extra_prefixes=extra_prefixes,
         )
