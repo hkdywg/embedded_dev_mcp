@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "embedded-dev-adb-usb": {
+      "command": "uv",
+      "args": ["--directory", "/path/to/embedded_dev_mcp", "run", "embedded-dev-mcp"],
+      "env": {
+        "SERVER_NAME": "embedded-dev-adb-usb",
+        "TRANSPORT": "adb-usb",
+        "ADB_BINARY": "adb",
+        "ADB_SERIAL": "5c5ec7023ef0356e",
+        "DEVICE_TIMEOUT": "15",
+        "AUDIT_LOG": "/tmp/audit.log"
+      }
+    }
+  }
+}

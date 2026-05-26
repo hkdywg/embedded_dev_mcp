@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "embedded-dev-mcu": {
+      "command": "uv",
+      "args": ["--directory", "/path/to/embedded_dev_mcp", "run", "embedded-dev-mcp"],
+      "env": {
+        "SERVER_NAME": "embedded-dev-mcu",
+        "TRANSPORT": "ssh",
+        "SSH_HOST": "127.0.0.1",
+        "SSH_USER": "root",
+        "MCU_DEBUG_ENABLED": "true",
+        "PROBE_TYPE": "stlink",
+        "TARGET_CHIP": "stm32f407",
+        "PROBE_RS_BINARY": "probe-rs",
+        "DEVICE_TIMEOUT": "30",
+        "AUDIT_LOG": "/tmp/audit.log"
+      }
+    }
+  }
+}

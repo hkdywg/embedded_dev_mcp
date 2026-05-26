@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "embedded-dev-ssh": {
+      "command": "uv",
+      "args": ["--directory", "/path/to/embedded_dev_mcp", "run", "embedded-dev-mcp"],
+      "env": {
+        "SERVER_NAME": "embedded-dev-ssh",
+        "TRANSPORT": "ssh",
+        "SSH_HOST": "192.168.1.100",
+        "SSH_PORT": "22",
+        "SSH_USER": "root",
+        "SSH_KEY": "~/.ssh/id_rsa",
+        "DEVICE_TIMEOUT": "15",
+        "AUDIT_LOG": "/tmp/audit.log"
+      }
+    }
+  }
+}
