@@ -14,7 +14,7 @@ from .audit import AuditLog
 from .config import Settings
 from .probe_manager import ProbeRsManager
 from .safety import READ_PATH_ROOTS, WRITE_PATH_ROOTS, check_path, check_shell_prefix
-from .tools import ReadOnlyTools, WritableTools
+from .tools.linux_tools import ReadOnlyTools, WritableTools
 from .tools.mcu_tools import McuDebugTools
 from .transports import build_transport
 
