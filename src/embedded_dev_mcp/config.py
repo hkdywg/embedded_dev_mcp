@@ -49,6 +49,7 @@ class Settings:
     audit_log_path: Path
     allow_extra_shell_prefixes: tuple[str, ...]
     extra_prefixes: tuple[str, ...] = ()
+    iar_build_binary: str = "iarbuild"
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -92,6 +93,7 @@ class Settings:
             probe_rs_binary=os.environ.get("PROBE_RS_BINARY", "probe-rs"),
             probe_index=probe_index,
             mcu_debug_enabled=mcu_enabled,
+            iar_build_binary=os.environ.get("IAR_BUILD_BINARY", "iarbuild"),
             default_timeout=float(_get_env("TIMEOUT", "BOARD_TIMEOUT", "15")),
             audit_log_path=audit_log_path,
             allow_extra_shell_prefixes=extra_prefixes,
