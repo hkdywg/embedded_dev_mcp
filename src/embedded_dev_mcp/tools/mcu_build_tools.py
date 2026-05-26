@@ -10,7 +10,7 @@ from pathlib import Path
 from ..audit import AuditLog
 
 
-class BuildTools:
+class McuBuildTools:
     """MCU firmware build tools."""
 
     def __init__(

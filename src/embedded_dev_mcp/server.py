@@ -15,8 +15,8 @@ from .config import Settings
 from .probe_manager import ProbeRsManager
 from .safety import READ_PATH_ROOTS, WRITE_PATH_ROOTS, check_path, check_shell_prefix
 from .tools.linux_tools import ReadOnlyTools, WritableTools
-from .tools.mcu_tools import McuDebugTools
-from .tools.build_tools import BuildTools
+from .tools.mcu_debug_tools import McuDebugTools
+from .tools.mcu_build_tools import McuBuildTools
 from .transports import build_transport
 
 
@@ -29,7 +29,7 @@ def create_server(settings: Settings) -> FastMCP:
 
     # MCU debug tools (if enabled)
     mcu_tools = None
-    build_tools = None
+    mcu_build_tools = None
     if settings.mcu_debug_enabled:
         probe_manager = ProbeRsManager(
             probe_type=settings.probe_type,
@@ -38,7 +38,7 @@ def create_server(settings: Settings) -> FastMCP:
             timeout=settings.default_timeout,
         )
         mcu_tools = McuDebugTools(probe_manager, audit)
-        build_tools = BuildTools(
+        mcu_build_tools = McuBuildTools(
             audit=audit,
             iar_binary=settings.iar_build_binary,
             timeout=settings.default_timeout,
@@ -236,16 +236,16 @@ def create_server(settings: Settings) -> FastMCP:
             return await mcu_tools.clear_all_breakpoints()
 
     # Build tools (if enabled)
-    if build_tools:
+    if mcu_build_tools:
         @mcp.tool()
         async def iar_build(project_path: str, configuration: str = "Debug", clean: bool = False) -> str:
             """Build an IAR EWARM project (.ewp file)."""
-            return await build_tools.iar_build(project_path, configuration, clean_first=clean)
+            return await mcu_build_tools.iar_build(project_path, configuration, clean_first=clean)
 
         @mcp.tool()
         async def iar_clean(project_path: str, configuration: str = "Debug") -> str:
             """Clean an IAR EWARM project."""
-            return await build_tools.iar_clean(project_path, configuration)
+            return await mcu_build_tools.iar_clean(project_path, configuration)
 
     return mcp
 

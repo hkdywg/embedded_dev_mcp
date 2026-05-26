@@ -3,4 +3,4 @@
 from __future__ import annotations
 
 from .linux_tools import ReadOnlyTools, WritableTools
-from .mcu_tools import McuDebugTools
+from .mcu_debug_tools import McuDebugTools
