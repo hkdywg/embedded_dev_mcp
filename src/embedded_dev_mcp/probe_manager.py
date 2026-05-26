@@ -10,8 +10,14 @@ import re
 from dataclasses import dataclass
 from typing import Literal
 
-ProbeType = Literal["stlink", "jlink", "daplink", "blackmagic"]
+ProbeType = Literal["stlink", "jlink", "i-jet"]
 TargetArch = Literal["arm", "riscv"]
+
+PROBE_MAPPING = {
+    "stlink": "stlink",
+    "jlink": "jlink",
+    "i-jet": "cmsisdap",
+}
 
 
 @dataclass
@@ -36,6 +42,7 @@ class ProbeRsManager:
         timeout: float = 30.0,
     ) -> None:
         self.probe_type = probe_type
+        self._probe_rs_type = PROBE_MAPPING.get(probe_type, probe_type)
         self.target_chip = target_chip
         self.probe_rs_binary = probe_rs_binary
         self.gdb_binary = gdb_binary

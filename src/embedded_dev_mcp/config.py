@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Literal
 
 Transport = Literal["ssh", "adb-usb", "adb-wifi"]
-ProbeType = Literal["stlink", "jlink", "daplink", "blackmagic"]
+ProbeType = Literal["stlink", "jlink", "i-jet"]
 
 
 def _get_env(short: str, long: str, default: str = "") -> str:
@@ -68,7 +68,7 @@ class Settings:
 
         # MCU debug configuration
         probe_type = _get_env("PROBE_TYPE", "MCU_PROBE_TYPE", "stlink").lower().strip()
-        if probe_type not in ("stlink", "jlink", "daplink", "blackmagic"):
+        if probe_type not in ("stlink", "jlink", "i-jet"):
             probe_type = "stlink"
 
         mcu_enabled = os.environ.get("MCU_DEBUG_ENABLED", "false").lower() in ("true", "1", "yes")
