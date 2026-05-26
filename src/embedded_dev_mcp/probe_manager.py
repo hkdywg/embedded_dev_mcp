@@ -162,6 +162,17 @@ class ProbeRsManager:
 
         return "Target running"
 
+    async def step(self) -> str:
+        """Single step execution."""
+        args = ["step"]
+
+        stdout, stderr, rc = await self._run_probe_rs(args)
+
+        if rc != 0:
+            raise ProbeError(f"Step failed: {stderr}")
+
+        return "Single step completed"
+
     async def read_memory(self, address: int, size: int, format: str = "hex") -> str:
         """Read memory from target."""
         args = ["read", str(address), str(size)]

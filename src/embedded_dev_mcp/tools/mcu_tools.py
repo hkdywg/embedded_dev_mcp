@@ -99,6 +99,22 @@ class McuDebugTools:
         except ProbeError as e:
             return await self._run("resume_target", {}, f"ERROR: {e}", ok=False)
 
+    async def run_target(self) -> str:
+        """Run (resume) target execution after halt."""
+        try:
+            result = await self.probe.run()
+            return await self._run("run_target", {}, result)
+        except ProbeError as e:
+            return await self._run("run_target", {}, f"ERROR: {e}", ok=False)
+
+    async def step_target(self) -> str:
+        """Single-step target execution."""
+        try:
+            result = await self.probe.step()
+            return await self._run("step_target", {}, result)
+        except ProbeError as e:
+            return await self._run("step_target", {}, f"ERROR: {e}", ok=False)
+
     # Memory operations
     async def read_memory(self, address: int, size: int, format: str = "hex") -> str:
         """Read memory from target MCU."""

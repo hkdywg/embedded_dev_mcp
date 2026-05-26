@@ -193,6 +193,16 @@ def create_server(settings: Settings) -> FastMCP:
             """Get target MCU information."""
             return await mcu_tools.target_info()
 
+        @mcp.tool()
+        async def run_target() -> str:
+            """Run (resume) target MCU after halt."""
+            return await mcu_tools.run_target()
+
+        @mcp.tool()
+        async def step_target() -> str:
+            """Single-step target MCU execution."""
+            return await mcu_tools.step_target()
+
     return mcp
 
 
